@@ -163,6 +163,7 @@ void run(serverstruct *d){//нить обработки соединения с клиентом
 			}			
 		}
 		//++отправка истории сообщений
+        m.lock();
 		SQLFreeStmt(cs1.dbc.sqlStmtHandle,SQL_CLOSE);			//TO
 		SQLFreeStmt(cs1.dbc.sqlStmtHandle,SQL_UNBIND);	
 		string s0=string("select from_u,msg from msgs,users where msgs.to_u=users.i and users.login='")+d->login+string("'");
@@ -175,13 +176,12 @@ void run(serverstruct *d){//нить обработки соединения с клиентом
         while (SQLFetch(cs1.dbc.sqlStmtHandle) == SQL_SUCCESS) {
             SQLGetData(cs1.dbc.sqlStmtHandle, 2, SQL_CHAR, v1, 200, &v1l);
 			cout << "SQL:H:m: " << v1 << endl;
-            m.lock();
             try{
 	            writeS(*(d->s),"-");	
     	        writeS(*(d->s),(char*)v1);
 			}catch(...){}
-			m.unlock();	
         }
+		m.unlock();	        
 		//++
 		
 		//-цикл пересылки сообщений
@@ -193,6 +193,7 @@ void run(serverstruct *d){//нить обработки соединения с клиентом
 				string msg=readS(*(d->s));
 				sendMsg(d,msg,LOGIN);	
 				//+++запись в БД
+        		m.lock();				
 				SQLFreeStmt(cs1.dbc.sqlStmtHandle,SQL_CLOSE);			//TO
 				SQLFreeStmt(cs1.dbc.sqlStmtHandle,SQL_UNBIND);	
 				string s0=string("select i from users where login='")+LOGIN+string("'");
@@ -221,6 +222,7 @@ void run(serverstruct *d){//нить обработки соединения с клиентом
 				cout << "SQL: " << ss << endl;
 				SQLRETURN r=SQLExecDirect(cs1.dbc.sqlStmtHandle, (unsigned char*)(  ss  ).c_str(), SQL_NTS);
 				cout << "SQL:r:"<< r <<endl;
+				m.unlock();	    
 				//+++	
 			}else if(cmd=="A"){ //"S" - отправка сообщения всем пользователям
 				string msg=readS(*(d->s));			
@@ -380,6 +382,7 @@ void run(serverstruct *d){//нить обработки соединения с клиентом
 					);					
 					*/
 					//db_conn dbc;
+					m.lock();
 					SQLFreeStmt(dbc.sqlStmtHandle,SQL_CLOSE);
 					SQLFreeStmt(dbc.sqlStmtHandle,SQL_UNBIND);					
 					string ss=string("insert into users(login,pass,fio) values('")+login+string("','")+pass+string("','")+fio+string("')");
@@ -395,7 +398,6 @@ void run(serverstruct *d){//нить обработки соединения с клиентом
 					delete s;									
 					//
 					//this->done(); //завершаем сервер		
-					m.lock();
 					data1.insert(make_pair(login,new serverstruct(fio,login,pass)));
 					m.unlock();
 				}else{

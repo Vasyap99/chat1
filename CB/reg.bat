@@ -1,0 +1,2 @@
+@chatclient.exe -r
+@pause
